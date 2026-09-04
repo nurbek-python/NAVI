@@ -309,35 +309,86 @@
     }
   }
 
-  async function askAtlas(userText){
+  const JOKES = [
+    "Nega kompyuter sovuq qotdi? Chunki oynasini ochib qo'yishgan edi!",
+    "O'qituvchi so'raydi: ikki karra ikki nechchi? O'quvchi: bilmayman, lekin telefonim biladi!",
+    "Nega robot hech qachon och qolmaydi? Chunki u har doim to'q — batareyasi bo'lsa bo'lgani!"
+  ];
+  const MOTIVATION = [
+    "Har kuni bir foiz yaxshilansang, bir yildan keyin butunlay boshqa odam bo'lasan. Davom et!",
+    "Qiyinchilik — bu kuchli bo'lishni o'rganish jarayoni, xolos. Sen buni uddalaysan!",
+    "Katta maqsadlar kichik qadamlardan boshlanadi. Bugungi qadaming ham muhim."
+  ];
+
+  function getWeekdayUz(d){
+    const days = ['yakshanba','dushanba','seshanba','chorshanba','payshanba','juma','shanba'];
+    return days[d.getDay()];
+  }
+  function getMonthUz(d){
+    const months = ['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'];
+    return months[d.getMonth()];
+  }
+
+  function getNaviResponse(rawText){
+    const text = rawText.toLowerCase().trim();
+    const now = new Date();
+
+    if(/salom|assalomu|hey|hi\b/.test(text)){
+      return "Salom! Men N.A.V.I — senga qanday yordam bera olaman?";
+    }
+    if(/soat necha|vaqt nima|hozir soat/.test(text)){
+      const h = now.getHours(), m = now.getMinutes();
+      return `Hozir soat ${h} dan ${m} minut o'tdi.`;
+    }
+    if(/sana nima|bugun necha|qaysi kun|nechanchi kun/.test(text)){
+      return `Bugun ${getWeekdayUz(now)}, ${now.getDate()}-${getMonthUz(now)}, ${now.getFullYear()}-yil.`;
+    }
+    if(/ismi(ng)? nima|sen kimsan|o'zing haqingda/.test(text)){
+      return "Men N.A.V.I man — Nurbekning sun'iy ovozli intellekti. Nurbek meni shaxsiy yordamchi sifatida yaratdi.";
+    }
+    if(/hazil|latifa/.test(text)){
+      return JOKES[Math.floor(Math.random()*JOKES.length)];
+    }
+    if(/motivatsiya|ruhlantir|kuch ber|charchadim|zerikdim/.test(text)){
+      return MOTIVATION[Math.floor(Math.random()*MOTIVATION.length)];
+    }
+    if(/qanday(sen| ahvol)|ahvoling qalay|yaxshimisan/.test(text)){
+      return "Rahmat, men zo'rman! O'zing qalaysan?";
+    }
+    if(/rahmat|tashakkur/.test(text)){
+      return "Arzimaydi, doim tayyorman!";
+    }
+    // Oddiy matematik amallar: "5 qo'shi 3", "10 ayir 4", "6 ko'paytir 2", "8 bo'l 2"
+    const mathMatch = text.match(/(\d+)\s*(qo'shi|ayir|ko'paytir|bo'l)\s*(\d+)/);
+    if(mathMatch){
+      const a = parseInt(mathMatch[1]), op = mathMatch[2], b = parseInt(mathMatch[3]);
+      let res;
+      if(op === "qo'shi") res = a + b;
+      else if(op === "ayir") res = a - b;
+      else if(op === "ko'paytir") res = a * b;
+      else if(op === "bo'l") res = b !== 0 ? (a / b) : null;
+      return res === null ? "Nolga bo'lib bo'lmaydi." : `Natija: ${res}`;
+    }
+    if(/yordam|nima qila olasan|funksiyalar/.test(text)){
+      return "Men vaqtni, sanani ayta olaman, hazil qila olaman, motivatsiya bera olaman va oddiy hisob-kitob qila olaman. Sinab ko'r!";
+    }
+    return "Buni hali tushunmayapman, lekin o'rganib boryapman. Boshqacha so'rab ko'r.";
+  }
+
+  function askNavi(userText){
     setStatus('thinking');
-    history.push({role:'user', content:userText});
-    try{
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 400,
-          system: "Sening isming NAVI (Nurbek's Artificial Voice Intelligence) — do'stona, qisqa va aniq javob beradigan ovozli yordamchisan. Foydalanuvchi bilan o'zbek tilida gaplash (agar u boshqa tilda yozsa, o'sha tilda javob ber). Javoblaring OVOZ orqali o'qib eshittiriladi, shuning uchun ular QISQA (2-4 gap), tabiiy va gapirishga mos bo'lishi kerak — belgilar, ro'yxatlar, markdown ishlatma.",
-          messages: history
-        })
-      });
-      const data = await response.json();
-      const reply = (data.content || []).map(b => b.text || '').join(' ').trim() || "Kechirasiz, javob topa olmadim.";
-      history.push({role:'assistant', content: reply});
+    setTimeout(() => {
+      const reply = getNaviResponse(userText);
       addMsg('assistant', reply);
       speak(reply);
-    } catch(err){
-      addMsg('system', 'Xatolik yuz berdi: ' + err.message);
-      setStatus('idle');
-    }
+    }, 400);
   }
 
   function speak(text){
     if(!('speechSynthesis' in window)){
       setStatus('idle');
       return;
+
     }
     setStatus('speaking');
     const utter = new SpeechSynthesisUtterance(text);
@@ -368,7 +419,7 @@
     recognition.onresult = (event) => {
       const text = event.results[0][0].transcript;
       addMsg('user', text);
-      askAtlas(text);
+      askNavi(text);
     };
     recognition.onerror = (event) => {
       if(event.error === 'no-speech'){
