@@ -360,15 +360,22 @@
     if(/rahmat|tashakkur/.test(text)){
       return "Arzimaydi, doim tayyorman!";
     }
-    // Oddiy matematik amallar: "5 qo'shi 3", "10 ayir 4", "6 ko'paytir 2", "8 bo'l 2"
-    const mathMatch = text.match(/(\d+)\s*(qo'shi|ayir|ko'paytir|bo'l)\s*(\d+)/);
-    if(mathMatch){
-      const a = parseInt(mathMatch[1]), op = mathMatch[2], b = parseInt(mathMatch[3]);
+    // Matematik amallar: istalgan tartibda ham tushunadi
+    // Masalan: "5 qo'shi 3", "10 dan 5 ni ayir", "6 ni 2 ga ko'paytir", "8 ni 2 ga bo'l"
+    const numbers = text.match(/\d+/g);
+    let opWord = null;
+    if(/qo'sh/.test(text)) opWord = 'qoshish';
+    else if(/ayir/.test(text)) opWord = 'ayirish';
+    else if(/ko'paytir/.test(text)) opWord = 'kopaytirish';
+    else if(/bo'l/.test(text) && !/bo'lsin|bo'ladi\??$/.test(text)) opWord = 'bolish';
+
+    if(numbers && numbers.length >= 2 && opWord){
+      const a = parseInt(numbers[0]), b = parseInt(numbers[1]);
       let res;
-      if(op === "qo'shi") res = a + b;
-      else if(op === "ayir") res = a - b;
-      else if(op === "ko'paytir") res = a * b;
-      else if(op === "bo'l") res = b !== 0 ? (a / b) : null;
+      if(opWord === 'qoshish') res = a + b;
+      else if(opWord === 'ayirish') res = a - b;
+      else if(opWord === 'kopaytirish') res = a * b;
+      else if(opWord === 'bolish') res = b !== 0 ? (a / b) : null;
       return res === null ? "Nolga bo'lib bo'lmaydi." : `Natija: ${res}`;
     }
     if(/yordam|nima qila olasan|funksiyalar/.test(text)){
