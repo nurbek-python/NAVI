@@ -253,8 +253,10 @@
         <option value="en-US">Inglizcha</option>
       </select>
       <button class="stop-btn" id="stopBtn" disabled>To'xtatish</button>
+      <button class="stop-btn" id="testVoiceBtn" style="color:var(--accent);border-color:var(--accent);">Ovozni sinash</button>
     </div>
   </div>
+  <div id="debugInfo" style="position:fixed;bottom:70px;left:0;right:0;text-align:center;font-size:11px;color:var(--dim);"></div>
 
 <script>
   const orb = document.getElementById('orb');
@@ -473,6 +475,18 @@
     if(listening){ stopAll(); } else { startListening(); }
   });
   stopBtn.addEventListener('click', stopAll);
+
+  const testVoiceBtn = document.getElementById('testVoiceBtn');
+  const debugInfo = document.getElementById('debugInfo');
+  testVoiceBtn.addEventListener('click', () => {
+    loadVoices();
+    debugInfo.textContent = 'Topilgan ovozlar: ' + voicesCache.length;
+    const utter = new SpeechSynthesisUtterance('Salom, men N A V I. Bu ovoz sinovi.');
+    utter.rate = 1.0;
+    utter.onerror = (e) => { debugInfo.textContent += ' | Xato: ' + e.error; };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  });
 
   setStatus('idle');
 </script>
