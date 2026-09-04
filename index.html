@@ -338,11 +338,11 @@
     if(/salom|assalomu|hey|hi\b/.test(text)){
       return "Salom! Men N.A.V.I — senga qanday yordam bera olaman?";
     }
-    if(/soat necha|vaqt nima|hozir soat/.test(text)){
+    if(/soat necha|vaqt nima|hozir soat|soatni ayt/.test(text)){
       const h = now.getHours(), m = now.getMinutes();
       return `Hozir soat ${h} dan ${m} minut o'tdi.`;
     }
-    if(/sana nima|bugun necha|qaysi kun|nechanchi kun/.test(text)){
+    if(/sana|nechanchi|qaysi kun|kalendar/.test(text)){
       return `Bugun ${getWeekdayUz(now)}, ${now.getDate()}-${getMonthUz(now)}, ${now.getFullYear()}-yil.`;
     }
     if(/ismi(ng)? nima|sen kimsan|o'zing haqingda/.test(text)){
