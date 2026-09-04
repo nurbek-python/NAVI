@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N.A.V.I — ovozli yordamchi</title>
+<style>
+  :root{
+    --bg: #0a0e14;
+    --panel: #10161f;
+    --panel-2: #151d29;
+    --line: #212b38;
+    --text: #e8edf4;
+    --dim: #7b8a9e;
+    --accent: #2fd9c4;
+    --accent-dim: #1a5f57;
+    --warn: #ff8a4c;
+    --danger: #ff5f6d;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 28px 16px 90px;
+  }
+
+  .top{
+    width:100%;
+    max-width:520px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 30px;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .brand-name{
+    font-size:20px;
+    font-weight:700;
+    letter-spacing:0.5px;
+  }
+  .brand-sub{
+    font-size:12px;
+    color:var(--dim);
+  }
+  .status-pill{
+    font-size:12px;
+    color:var(--dim);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:6px 12px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .status-dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--dim);
+    transition: background 0.3s;
+  }
+  .status-dot.live{ background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  .status-dot.speaking{ background:var(--warn); box-shadow:0 0 8px var(--warn); }
+
+  .orb-wrap{
+    width:100%;
+    max-width:520px;
+    display:flex;
+    justify-content:center;
+    padding: 20px 0 34px;
+  }
+  .orb{
+    width:180px; height:180px;
+    border-radius:50%;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: radial-gradient(circle at 35% 30%, #182230, #0a0e14 70%);
+    border: 1px solid var(--line);
+    cursor:pointer;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    user-select:none;
+  }
+  .orb::before{
+    content:'';
+    position:absolute;
+    inset:-2px;
+    border-radius:50%;
+    border:1px solid var(--accent-dim);
+    opacity:0.5;
+  }
+  .orb.listening{
+    border-color: var(--accent);
+    box-shadow: 0 0 40px rgba(47,217,196,0.25);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .orb.speaking{
+    border-color: var(--warn);
+    box-shadow: 0 0 40px rgba(255,138,76,0.25);
+  }
+  @keyframes pulse{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.045); }
+  }
+  .mic-icon{
+    width:46px; height:46px;
+    color: var(--dim);
+    transition: color 0.3s;
+  }
+  .orb.listening .mic-icon{ color: var(--accent); }
+  .orb.speaking .mic-icon{ color: var(--warn); }
+
+  .hint{
+    font-size:13px;
+    color:var(--dim);
+    text-align:center;
+    margin-top:14px;
+    max-width:280px;
+  }
+
+  .log{
+    width:100%;
+    max-width:520px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    flex:1;
+  }
+  .empty-state{
+    color: var(--dim);
+    font-size:14px;
+    text-align:center;
+    padding: 30px 20px;
+    border:1px dashed var(--line);
+    border-radius:12px;
+  }
+  .msg{
+    padding:11px 14px;
+    border-radius:10px;
+    font-size:14.5px;
+    line-height:1.5;
+    max-width:88%;
+    animation: rise 0.25s ease;
+  }
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .msg.user{
+    align-self:flex-end;
+    background: var(--panel-2);
+    border:1px solid var(--line);
+  }
+  .msg.assistant{
+    align-self:flex-start;
+    background: transparent;
+    border-left:2px solid var(--accent);
+    padding-left:12px;
+    color: var(--text);
+  }
+  .msg.system{
+    align-self:center;
+    color: var(--danger);
+    font-size:12.5px;
+    border:1px solid var(--danger);
+    background:transparent;
+  }
+
+  .bottom-bar{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    display:flex;
+    justify-content:center;
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  .controls{
+    width:100%;
+    max-width:520px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  select{
+    background:var(--panel);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 10px;
+    font-family:inherit;
+    font-size:12.5px;
+  }
+  button.stop-btn{
+    background: var(--panel);
+    color: var(--danger);
+    border:1px solid var(--danger);
+    border-radius:8px;
+    padding:9px 14px;
+    font-family:inherit;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  button.stop-btn:disabled{
+    opacity:0.35;
+    cursor:default;
+  }
+</style>
+</head>
+<body>
+
+  <div class="top">
+    <div class="brand">
+      <div class="brand-name">N.A.V.I</div>
+      <div class="brand-sub">shaxsiy ovozli yordamchi</div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">tayyor</span>
+    </div>
+  </div>
+
+  <div class="orb-wrap">
+    <div class="orb" id="orb">
+      <svg class="mic-icon" id="micIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+        <line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="9" y1="22" x2="15" y2="22"/>
+      </svg>
+    </div>
+  </div>
+  <div class="hint" id="hint">Gapirish uchun doiraga bos</div>
+
+  <div class="log" id="log">
+    <div class="empty-state" id="emptyState">Hali hech narsa yo'q. Doiraga bosib, savol ber — masalan: "bugungi sana nima" yoki "menga motivatsiya ber"</div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="controls">
+      <select id="langSelect">
+        <option value="uz-UZ">O'zbekcha</option>
+        <option value="ru-RU">Ruscha</option>
+        <option value="en-US">Inglizcha</option>
+      </select>
+      <button class="stop-btn" id="stopBtn" disabled>To'xtatish</button>
+    </div>
+  </div>
+
+<script>
+  const orb = document.getElementById('orb');
+  const micIcon = document.getElementById('micIcon');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const hint = document.getElementById('hint');
+  const log = document.getElementById('log');
+  const emptyState = document.getElementById('emptyState');
+  const langSelect = document.getElementById('langSelect');
+  const stopBtn = document.getElementById('stopBtn');
+
+  let listening = false;
+  let recognition = null;
+  let history = [];
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function addMsg(role, text){
+    if(emptyState) emptyState.remove();
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    log.appendChild(div);
+    div.scrollIntoView({behavior:'smooth', block:'end'});
+    return div;
+  }
+
+  function setStatus(mode){
+    orb.classList.remove('listening','speaking');
+    statusDot.classList.remove('live','speaking');
+    if(mode === 'listening'){
+      orb.classList.add('listening');
+      statusDot.classList.add('live');
+      statusText.textContent = 'eshityapman...';
+      hint.textContent = 'Gapir, tugatgach avtomatik to\'xtaydi';
+      stopBtn.disabled = false;
+    } else if(mode === 'thinking'){
+      statusText.textContent = 'o\'ylayapman...';
+      hint.textContent = 'Javob tayyorlanmoqda';
+      stopBtn.disabled = true;
+    } else if(mode === 'speaking'){
+      orb.classList.add('speaking');
+      statusDot.classList.add('speaking');
+      statusText.textContent = 'gapiryapman...';
+      hint.textContent = 'Javobni tinglang';
+      stopBtn.disabled = false;
+    } else {
+      statusText.textContent = 'tayyor';
+      hint.textContent = 'Gapirish uchun doiraga bos';
+      stopBtn.disabled = true;
+    }
+  }
+
+  async function askAtlas(userText){
+    setStatus('thinking');
+    history.push({role:'user', content:userText});
+    try{
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 400,
+          system: "Sening isming NAVI (Nurbek's Artificial Voice Intelligence) — do'stona, qisqa va aniq javob beradigan ovozli yordamchisan. Foydalanuvchi bilan o'zbek tilida gaplash (agar u boshqa tilda yozsa, o'sha tilda javob ber). Javoblaring OVOZ orqali o'qib eshittiriladi, shuning uchun ular QISQA (2-4 gap), tabiiy va gapirishga mos bo'lishi kerak — belgilar, ro'yxatlar, markdown ishlatma.",
+          messages: history
+        })
+      });
+      const data = await response.json();
+      const reply = (data.content || []).map(b => b.text || '').join(' ').trim() || "Kechirasiz, javob topa olmadim.";
+      history.push({role:'assistant', content: reply});
+      addMsg('assistant', reply);
+      speak(reply);
+    } catch(err){
+      addMsg('system', 'Xatolik yuz berdi: ' + err.message);
+      setStatus('idle');
+    }
+  }
+
+  function speak(text){
+    if(!('speechSynthesis' in window)){
+      setStatus('idle');
+      return;
+    }
+    setStatus('speaking');
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = langSelect.value;
+    utter.rate = 1.0;
+    utter.onend = () => setStatus('idle');
+    utter.onerror = () => setStatus('idle');
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
+
+  function startListening(){
+    if(!SR){
+      addMsg('system', 'Bu brauzer ovozni tanib olishni qo\'llab-quvvatlamaydi. Chrome brauzeridan foydalaning.');
+      return;
+    }
+    if(listening) return;
+    window.speechSynthesis.cancel();
+    recognition = new SR();
+    recognition.lang = langSelect.value;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      listening = true;
+      setStatus('listening');
+    };
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      addMsg('user', text);
+      askAtlas(text);
+    };
+    recognition.onerror = (event) => {
+      if(event.error === 'no-speech'){
+        addMsg('system', 'Ovoz eshitilmadi, qayta urinib ko\'ring.');
+      } else if(event.error === 'not-allowed'){
+        addMsg('system', 'Mikrofonga ruxsat berilmadi.');
+      }
+    };
+    recognition.onend = () => {
+      listening = false;
+      if(statusText.textContent === 'eshityapman...') setStatus('idle');
+    };
+    recognition.start();
+  }
+
+  function stopAll(){
+    if(recognition) recognition.stop();
+    window.speechSynthesis.cancel();
+    listening = false;
+    setStatus('idle');
+  }
+
+  orb.addEventListener('click', () => {
+    if(listening){ stopAll(); } else { startListening(); }
+  });
+  stopBtn.addEventListener('click', stopAll);
+
+  setStatus('idle');
+</script>
+</body>
+</html>
