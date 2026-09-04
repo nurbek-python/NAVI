@@ -377,25 +377,52 @@
 
   function askNavi(userText){
     setStatus('thinking');
-    setTimeout(() => {
-      const reply = getNaviResponse(userText);
-      addMsg('assistant', reply);
-      speak(reply);
-    }, 400);
+    const reply = getNaviResponse(userText);
+    addMsg('assistant', reply);
+    speak(reply);
+  }
+
+  let voicesCache = [];
+  function loadVoices(){
+    voicesCache = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  }
+  if('speechSynthesis' in window){
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  function pickVoice(langCode){
+    if(!voicesCache.length) loadVoices();
+    if(!voicesCache.length) return null;
+    const prefix = langCode.split('-')[0];
+    return voicesCache.find(v => v.lang === langCode)
+        || voicesCache.find(v => v.lang && v.lang.startsWith(prefix))
+        || voicesCache.find(v => v.lang && v.lang.startsWith('ru'))
+        || voicesCache.find(v => v.lang && v.lang.startsWith('en'))
+        || voicesCache[0];
   }
 
   function speak(text){
     if(!('speechSynthesis' in window)){
+      addMsg('system', 'Bu qurilma ovozda gapirishni qo\'llab-quvvatlamaydi.');
       setStatus('idle');
       return;
-
     }
     setStatus('speaking');
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = langSelect.value;
+    const voice = pickVoice(langSelect.value);
+    if(voice){
+      utter.voice = voice;
+      utter.lang = voice.lang;
+    } else {
+      utter.lang = langSelect.value;
+    }
     utter.rate = 1.0;
     utter.onend = () => setStatus('idle');
-    utter.onerror = () => setStatus('idle');
+    utter.onerror = () => {
+      addMsg('system', 'Ovozda gapirishda muammo chiqdi. Telefon sozlamalaridan "Text-to-speech" ovoz mavjudligini tekshiring.');
+      setStatus('idle');
+    };
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
   }
