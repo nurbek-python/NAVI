@@ -429,6 +429,36 @@
     window.speechSynthesis.speak(utter);
   }
 
+  function showPermissionHelp(){
+    if(emptyState) emptyState.remove();
+    const div = document.createElement('div');
+    div.className = 'msg system';
+    div.style.maxWidth = '100%';
+    div.style.textAlign = 'left';
+    div.style.lineHeight = '1.6';
+    div.innerHTML =
+      '<b>Mikrofonga ruxsat bloklangan.</b><br>' +
+      'Qayta yoqish uchun:<br>' +
+      '1. Manzil qatoridagi 🔒 (qulf) belgisini bosing<br>' +
+      '2. "Permissions" yoki "Ruxsatlar" ni tanlang<br>' +
+      '3. Microphone qarshisida "Allow / Ruxsat berish" ni tanlang<br>' +
+      '4. Sahifani yangilang (refresh)<br><br>' +
+      '<button id="retryPermBtn" style="background:var(--accent);color:#0a0e14;border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-weight:600;cursor:pointer;">Qayta urinib ko\'rish</button>';
+    log.appendChild(div);
+    div.scrollIntoView({behavior:'smooth', block:'end'});
+    document.getElementById('retryPermBtn').addEventListener('click', async () => {
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        stream.getTracks().forEach(t => t.stop());
+        addMsg('assistant', 'Ruxsat berildi! Endi gapirsangiz bo\'ladi.');
+        setStatus('idle');
+      } catch(err){
+        addMsg('system', 'Hali ham ruxsat berilmagan. Yuqoridagi qadamlarni qayta bajarib ko\'ring.');
+      }
+    });
+    setStatus('idle');
+  }
+
   function startListening(){
     if(!SR){
       addMsg('system', 'Bu brauzer ovozni tanib olishni qo\'llab-quvvatlamaydi. Chrome brauzeridan foydalaning.');
@@ -454,7 +484,7 @@
       if(event.error === 'no-speech'){
         addMsg('system', 'Ovoz eshitilmadi, qayta urinib ko\'ring.');
       } else if(event.error === 'not-allowed'){
-        addMsg('system', 'Mikrofonga ruxsat berilmadi.');
+        showPermissionHelp();
       }
     };
     recognition.onend = () => {
